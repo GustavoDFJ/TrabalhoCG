@@ -1,40 +1,20 @@
-import * as THREE from  'three';
-import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
-import {initRenderer, 
-        initCamera,
-        initDefaultBasicLight,
-        setDefaultMaterial,
-        InfoBox,
-        onWindowResize} from "../libs/util/util.js";
+import { scene, createSceneObjects } from './sceneSetup.js';
+import { cameraHolder, render } from './camera.js';
+import { InfoBox } from "../libs/util/util.js";
 
-import {scene, createSceneObjects} from "./sceneSetup.js";
+// Adiciona o holder da câmera na cena (que vem do sceneSetup.js)
+scene.add(cameraHolder);
 
-let renderer, camera, material, light, orbit; // Initial variables
-//scene = new THREE.Scene();    // Create main scene
-renderer = initRenderer();    // Init a basic renderer
-camera = initCamera(new THREE.Vector3(0, 15, 30)); // Init camera in this position
-material = setDefaultMaterial(); // create a basic material
-light = initDefaultBasicLight(scene); // Create a basic light to illuminate the scene
-orbit = new OrbitControls( camera, renderer.domElement ); // Enable mouse rotation, pan, zoom etc.
-
-// Listen window size changes
-window.addEventListener( 'resize', function(){onWindowResize(camera, renderer)}, false );
-
+// Cria os objetos do cenário (chão, paredes, áreas, etc)
 createSceneObjects();
 
-// Use this to show information onscreen
-let controls = new InfoBox();
-  controls.add("Basic Scene");
-  controls.addParagraph();
-  controls.add("Use mouse to interact:");
-  controls.add("* Left button to rotate");
-  controls.add("* Right button to translate (pan)");
-  controls.add("* Scroll to zoom in/out.");
-  controls.show();
+// InfoBox com instruções
+const info = new InfoBox();
+info.add("First-person shooter");
+info.addParagraph();
+info.add("Use W/A/S/D para mover");
+info.add("Clique na tela para travar o mouse");
+info.show();
 
+// Inicia o loop de renderização
 render();
-function render()
-{
-  requestAnimationFrame(render);
-  renderer.render(scene, camera) // Render scene
-}

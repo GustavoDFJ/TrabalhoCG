@@ -1,23 +1,61 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>T1 - First-person shooter</title>
+   <head>
+      <title>T1 - First-person shooter</title>
 
-    <link rel="shortcut icon" href="../favicon.ico">
-    <link rel="stylesheet" href="../html/resources/default.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">  
-  </head>
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../html/resources/default.css">
+      <meta name="viewport" content="width=device-width, initial-scale=1">  
+   </head>
 
-<body>
-  <!-- Import maps polyfill -- Remove this when import maps will be widely supported-->
-  <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>  
-  <script type="importmap"> 
-    {"imports": {"three": "../build/three.module.js"}} 
-  </script>  
+   <body>
+      <!-- Import maps polyfill -- Remove this when import maps will be widely supported-->
+      <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>  
+      <script type="importmap"> 
+         {"imports": {"three": "../build/three.module.js"}} 
+      </script>  
 
-  <div id="webgl-output">     
-    <script type="module" src="main.js"></script>
-  </div>
-</body>
+      <div id="webgl-output">     
+         <script type="module" src="main.js""></script>
+      </div>
 
+      <!-- Crosshair simples -->
+      <div id="crosshair"></div>
+
+      <style>
+        #crosshair {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          width: 20px;
+          height: 20px;
+          margin-left: -10px;  /* metade da largura */
+          margin-top: -10px;   /* metade da altura */
+          pointer-events: none; /* não bloqueia clique */
+          z-index: 1000;       /* fica na frente */
+        }
+
+        #crosshair:before, #crosshair:after {
+          content: '';
+          position: absolute;
+          background: white;
+        }
+
+        #crosshair:before {
+          left: 50%;
+          top: 0;
+          width: 2px;
+          height: 100%;
+          transform: translateX(-50%);
+        }
+
+        #crosshair:after {
+          top: 50%;
+          left: 0;
+          height: 2px;
+          width: 100%;
+          transform: translateY(-50%);
+        }
+      </style>
+   </body>
 </html>
