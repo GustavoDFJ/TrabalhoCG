@@ -1,191 +1,232 @@
 import * as THREE from 'three';
+// Importa tudo da biblioteca three.js no objeto THREE para manipulação 3D.
+
 import { createGroundPlaneXZ } from "../libs/util/util.js";
+// Importa função utilitária para criar um plano no eixo XZ (chão).
 
+// Cena e arrays de colisão
 export const scene = new THREE.Scene();
+// Cria a cena 3D principal onde todos os objetos serão adicionados.
+
 scene.background = new THREE.Color(0x111111);
+// Define a cor de fundo da cena (cinza muito escuro).
 
-// Luz ambiente para iluminação geral
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
+export const collidableMeshes = []; // Objetos sólidos
+// Array para armazenar objetos com os quais o jogador pode colidir (paredes, chão, etc).
 
-// Luz direcional para sombras e iluminação mais definida
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-directionalLight.position.set(10, 20, 10);
-directionalLight.castShadow = true;
-directionalLight.shadow.mapSize.width = 2048;  // sombras de boa qualidade
-directionalLight.shadow.mapSize.height = 2048;
-directionalLight.shadow.camera.near = 1;
-directionalLight.shadow.camera.far = 100;
-scene.add(directionalLight);
-
-// Chão
-const floor = createGroundPlaneXZ(500, 500);
-floor.receiveShadow = true;
-scene.add(floor);
-
-// Paredes
-let wallGeometry = new THREE.BoxGeometry(500, 10, 1);
-const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 });
-
-let wall = new THREE.Mesh(wallGeometry, wallMaterial);
-wall.position.set(0, 5, 249.5);
-wall.castShadow = true;
-wall.receiveShadow = true;
-scene.add(wall);
-
-wall = new THREE.Mesh(wallGeometry, wallMaterial);
-wall.position.set(0, 5, -249.5);
-wall.castShadow = true;
-wall.receiveShadow = true;
-scene.add(wall);
-
-wallGeometry = new THREE.BoxGeometry(1, 10, 500);
-wall = new THREE.Mesh(wallGeometry, wallMaterial);
-wall.position.set(249.5, 5, 0);
-wall.castShadow = true;
-wall.receiveShadow = true;
-scene.add(wall);
-
-wall = new THREE.Mesh(wallGeometry, wallMaterial);
-wall.position.set(-249.5, 5, 0);
-wall.castShadow = true;
-wall.receiveShadow = true;
-scene.add(wall);
+export const stairMeshes = [];      // Apenas escadas (podem ser escaladas)
+// Array específico para armazenar os objetos que são escadas, para tratar subida.
 
 function addShadowProps(mesh) {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
 }
+// Função para habilitar sombras em um objeto: ele projeta e recebe sombras.
 
-export function createSceneObjects() {
-  // Área 1
-  let areaGeometry = new THREE.BoxGeometry(120, 1.60, 116);
-  let areaMaterial = new THREE.MeshStandardMaterial({ color: 0xff3333 });
-  let build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(-155, 0.8, -157);
-  addShadowProps(build);
-  scene.add(build);
+// Luzes
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+// Luz ambiente que ilumina tudo uniformemente com intensidade 0.8 (80%).
 
-  areaGeometry = new THREE.BoxGeometry(35, 1.60, 4.5);
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(-112.5, 0.8, -97.25);
-  addShadowProps(build);
-  scene.add(build);
+scene.add(ambientLight);
+// Adiciona a luz ambiente na cena.
 
-  areaGeometry = new THREE.BoxGeometry(75, 1.60, 4.5);
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(-177.5, 0.8, -97.25);
-  addShadowProps(build);
-  scene.add(build);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+// Luz direcional que simula a luz do sol, com intensidade 0.5.
 
-  let stepSize = { x: 10, y: .2, z: .5 };
-  let steps = 8;
-  let angle = Math.PI;
-  let position = new THREE.Vector3(-135, 0, -95);
+directionalLight.position.set(10, 20, 10);
+// Posiciona a luz direcional em um ponto alto e lateral (para criar sombras).
 
-  let stair = staircase(stepSize, steps, angle, position, areaMaterial);
-  addShadowProps(stair);
-  scene.add(stair);
+directionalLight.castShadow = true;
+// Permite que essa luz crie sombras.
 
-  // Área 2
-  areaGeometry = new THREE.BoxGeometry(120, 1.60, 116);
-  areaMaterial = new THREE.MeshStandardMaterial({ color: 0x4682b4 });
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(0, 0.8, -157);
-  addShadowProps(build);
-  scene.add(build);
+scene.add(directionalLight);
+// Adiciona a luz direcional na cena.
 
-  areaGeometry = new THREE.BoxGeometry(35, 1.60, 4.5);
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(42.5, 0.8, -97.25);
-  addShadowProps(build);
-  scene.add(build);
+// Chão
+const floor = createGroundPlaneXZ(500, 500);
+// Cria um plano de 500x500 unidades para o chão, usando função utilitária.
 
-  areaGeometry = new THREE.BoxGeometry(75, 1.60, 4.5);
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(-22.5, 0.8, -97.25);
-  addShadowProps(build);
-  scene.add(build);
+floor.receiveShadow = true;
+// Permite que o chão receba sombras dos objetos acima.
 
-  stepSize = { x: 10, y: .2, z: .5 };
-  steps = 8;
-  angle = Math.PI;
-  position = new THREE.Vector3(20, 0, -95);
+scene.add(floor);
+// Adiciona o chão na cena.
 
-  stair = staircase(stepSize, steps, angle, position, areaMaterial);
-  addShadowProps(stair);
-  scene.add(stair);
+// Paredes externas
+let wallGeometry = new THREE.BoxGeometry(500, 10, 1);
+// Geometria retangular para as paredes frontais e traseiras (largura 500, altura 10, profundidade 1).
 
-  // Área 3
-  areaGeometry = new THREE.BoxGeometry(120, 1.60, 116);
-  areaMaterial = new THREE.MeshStandardMaterial({ color: 0x6b8e23 });
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(155, 0.8, -157);
-  addShadowProps(build);
-  scene.add(build);
+const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 });
+// Material padrão cinza para as paredes, reage à luz.
 
-  areaGeometry = new THREE.BoxGeometry(55, 1.60, 4.5);
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(187.5, 0.8, -97.25);
-  addShadowProps(build);
-  scene.add(build);
+const wallPositions = [
+  [0, 5, 249.5],
+  [0, 5, -249.5]
+];
+// Posições centrais das paredes frontais e traseiras (em Y está no meio da altura).
 
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(122.5, 0.8, -97.25);
-  addShadowProps(build);
-  scene.add(build);
+wallPositions.forEach(pos => {
+  const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+  // Cria a parede com a geometria e material definidos.
 
-  stepSize = { x: 10, y: .2, z: .5 };
-  steps = 8;
-  angle = Math.PI;
-  position = new THREE.Vector3(155, 0, -95);
+  wall.position.set(...pos);
+  // Posiciona a parede no local indicado.
 
-  stair = staircase(stepSize, steps, angle, position, areaMaterial);
-  addShadowProps(stair);
-  scene.add(stair);
+  addShadowProps(wall);
+  // Habilita sombras para essa parede.
 
-  // Área 4
-  areaGeometry = new THREE.BoxGeometry(310, 1.60, 116);
-  areaMaterial = new THREE.MeshStandardMaterial({ color: 0xffb90f });
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(0, 0.8, 157);
-  addShadowProps(build);
-  scene.add(build);
+  scene.add(wall);
+  // Adiciona a parede na cena.
 
-  areaGeometry = new THREE.BoxGeometry(150, 1.60, 4.5);
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(-80, 0.8, 97.25);
-  addShadowProps(build);
-  scene.add(build);
+  collidableMeshes.push(wall);
+  // Adiciona essa parede na lista de objetos sólidos para colisão.
+});
 
-  build = new THREE.Mesh(areaGeometry, areaMaterial);
-  build.position.set(80, 0.8, 97.25);
-  addShadowProps(build);
-  scene.add(build);
+wallGeometry = new THREE.BoxGeometry(1, 10, 500);
+// Geometria para as paredes laterais (espessura 1, altura 10, comprimento 500).
 
-  stepSize = { x: 10, y: .2, z: .5 };
-  steps = 8;
-  angle = 0;
-  position = new THREE.Vector3(0, 0, 95);
+const sideWallPositions = [
+  [249.5, 5, 0],
+  [-249.5, 5, 0]
+];
+// Posições das paredes laterais direita e esquerda.
 
-  stair = staircase(stepSize, steps, angle, position, areaMaterial);
-  addShadowProps(stair);
-  scene.add(stair);
-}
+sideWallPositions.forEach(pos => {
+  const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+  // Cria a parede lateral.
 
+  wall.position.set(...pos);
+  // Posiciona a parede lateral.
+
+  addShadowProps(wall);
+  // Habilita sombras para essa parede.
+
+  scene.add(wall);
+  // Adiciona na cena.
+
+  collidableMeshes.push(wall);
+  // Adiciona para detecção de colisão.
+});
+
+// Criação da escada
 function staircase(stepSize, numSteps, angle, position, material) {
   const staircase = new THREE.Group();
+  // Cria um grupo para agregar todos os degraus da escada.
+
   staircase.position.copy(position);
+  // Posiciona o grupo da escada na posição passada.
+
   staircase.rotation.y = angle;
+  // Rotaciona a escada no eixo Y para o ângulo desejado.
 
   for (let i = 0; i < numSteps; i++) {
     const stepGeometry = new THREE.BoxGeometry(stepSize.x, stepSize.y, stepSize.z);
+    // Cria a geometria de um degrau.
+
     const step = new THREE.Mesh(stepGeometry, material);
+    // Cria o mesh do degrau com o material passado.
+
     step.position.set(0, (i + 0.5) * stepSize.y, (i + 0.5) * stepSize.z);
+    // Posiciona o degrau em Y e Z empilhados e alinhados para formar a escada.
+
     step.castShadow = true;
     step.receiveShadow = true;
+    // Habilita sombras para o degrau.
+
     staircase.add(step);
+    // Adiciona o degrau ao grupo da escada.
   }
 
   return staircase;
+  // Retorna o grupo da escada completo.
+}
+
+// Criação das áreas
+export function createSceneObjects() {
+  const areas = [
+    {
+      color: 0xff3333,
+      center: [-155, 0.8, -157],
+      passagens: [[-112.5, -97.25, 35], [-177.5, -97.25, 75]],
+      escada: [-135, 0, -95, Math.PI]
+    },
+    {
+      color: 0x4682b4,
+      center: [0, 0.8, -157],
+      passagens: [[42.5, -97.25, 35], [-22.5, -97.25, 75]],
+      escada: [20, 0, -95, Math.PI]
+    },
+    {
+      color: 0x6b8e23,
+      center: [155, 0.8, -157],
+      passagens: [[187.5, -97.25, 55], [122.5, -97.25, 55]],
+      escada: [155, 0, -95, Math.PI]
+    },
+    {
+      color: 0xffb90f,
+      center: [0, 0.8, 157],
+      passagens: [[-80, 97.25, 150], [80, 97.25, 150]],
+      escada: [0, 0, 95, 0]
+    }
+  ];
+  // Define um array de áreas, cada uma com cor, posição central, passagens e escada.
+
+  areas.forEach(area => {
+    const areaMaterial = new THREE.MeshStandardMaterial({ color: area.color });
+    // Cria material para a área com a cor definida.
+
+    const base = new THREE.Mesh(new THREE.BoxGeometry(120, 1.6, 116), areaMaterial);
+    // Cria a base da área como um paralelepípedo baixo.
+
+    base.position.set(...area.center);
+    // Posiciona a base na coordenada central da área.
+
+    addShadowProps(base);
+    // Habilita sombras para a base.
+
+    scene.add(base);
+    // Adiciona a base na cena.
+
+    collidableMeshes.push(base);
+    // Adiciona a base para colisão.
+
+    area.passagens.forEach(([x, z, w]) => {
+      const passage = new THREE.Mesh(new THREE.BoxGeometry(w, 1.6, 4.5), areaMaterial);
+      // Cria um mesh para uma passagem (abertura ou corredor) com largura `w`.
+
+      passage.position.set(x, 0.8, z);
+      // Posiciona a passagem na coordenada X,Z, com altura no meio da base.
+
+      addShadowProps(passage);
+      // Habilita sombras para a passagem.
+
+      scene.add(passage);
+      // Adiciona a passagem na cena.
+
+      collidableMeshes.push(passage);
+      // Adiciona a passagem na lista de colisores.
+    });
+
+    const stair = staircase(
+      { x: 10, y: 0.2, z: 0.5 }, // Tamanho do degrau
+      8,                         // Número de degraus
+      area.escada[3],            // Ângulo da escada (rot Y)
+      new THREE.Vector3(...area.escada.slice(0, 3)), // Posição da escada
+      areaMaterial               // Material
+    );
+    // Cria a escada da área com as propriedades definidas.
+
+    addShadowProps(stair);
+    // Habilita sombras para o grupo da escada.
+
+    scene.add(stair);
+    // Adiciona a escada na cena.
+
+    // Correção: adicionar degraus individualmente
+    stair.children.forEach(step => {
+      collidableMeshes.push(step);
+      stairMeshes.push(step);
+      // Adiciona cada degrau à lista de colisores e também à lista de escadas.
+    });
+  });
 }

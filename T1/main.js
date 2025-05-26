@@ -1,20 +1,24 @@
 import { scene, createSceneObjects } from './sceneSetup.js';
-import { cameraHolder, render } from './camera.js';
+import { cameraHolder, render, camera, renderer } from './camera.js';
 import { InfoBox } from "../libs/util/util.js";
+import { initWeaponSystem, updateProjectiles } from './weaponSystem.js';
 
-// Adiciona o holder da câmera na cena (que vem do sceneSetup.js)
 scene.add(cameraHolder);
-
-// Cria os objetos do cenário (chão, paredes, áreas, etc)
 createSceneObjects();
 
-// InfoBox com instruções
+initWeaponSystem(camera, renderer);
+
 const info = new InfoBox();
-info.add("First-person shooter");
-info.addParagraph();
-info.add("Use W/A/S/D para mover");
-info.add("Clique na tela para travar o mouse");
+info.add("Sistema de Armas:");
+info.add("SCROLL → troca arma");
+info.add("Cilindro → botão ESQUERDO → dispara esferas");
+info.add("Paralelepípedo → botão DIREITO → dispara cubos");
 info.show();
 
-// Inicia o loop de renderização
+function gameLoop() {
+  requestAnimationFrame(gameLoop);
+  updateProjectiles();
+}
+
 render();
+gameLoop();
