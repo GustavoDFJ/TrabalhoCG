@@ -97,13 +97,20 @@ function spawnProjectile(type) {
 
   const projectile = new THREE.Mesh(geometry, material);
 
+  // Pega a posição global da câmera
+  const cameraWorldPosition = new THREE.Vector3();
+  cameraRef.getWorldPosition(cameraWorldPosition);
+
   // Pega a direção que a câmera está olhando (vetor normalizado)
   const direction = new THREE.Vector3();
   cameraRef.getWorldDirection(direction);
   direction.normalize();
 
   // Posiciona o projétil na posição da câmera
-  projectile.position.copy(cameraRef.position);
+  // projectile.position.copy(cameraRef.position);
+
+  // Posiciona o projétil na posição global da câmera
+  projectile.position.copy(cameraWorldPosition);
 
   // Adiciona o projétil à cena
   scene.add(projectile);
@@ -112,7 +119,8 @@ function spawnProjectile(type) {
   projectiles.push({
     mesh: projectile,
     direction: direction.clone(),
-    startPosition: cameraRef.position.clone()
+    // startPosition: cameraRef.position.clone()
+    startPosition: cameraWorldPosition.clone()
   });
 }
 
@@ -163,6 +171,7 @@ function initWeaponSystem(camera, renderer) {
   window.addEventListener('wheel', switchWeapon); // escuta o scroll para trocar arma
 
   // Usa o elemento DOM do renderer para ouvir eventos de clique e disparar armas
+  //rendererRef.domElement.removeEventListener('mousedown', fireWeapon); // Remove primeiro
   rendererRef.domElement.addEventListener('mousedown', fireWeapon);
 }
 
