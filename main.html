@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>T1 - First-person shooter</title> <!-- Título da aba do navegador -->
+
+      <!-- Ícone da aba do navegador -->
+      <link rel="shortcut icon" href="../favicon.ico">
+
+      <!-- Importa o arquivo CSS padrão para estilização -->
+      <link rel="stylesheet" href="../html/resources/default.css">
+
+      <!-- Configura a viewport para responsividade em dispositivos móveis -->
+      <meta name="viewport" content="width=device-width, initial-scale=1">  
+   </head>
+
+   <body>
+      <!-- Polyfill para import maps: necessário até que todos os navegadores suportem import maps nativamente -->
+      <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>  
+
+      <!-- Define o import map: mapeia o nome 'three' para o caminho local do módulo Three.js -->
+      <script type="importmap"> 
+         {
+           "imports": {
+             "three": "../build/three.module.js"
+           }
+         } 
+      </script>  
+
+      <!-- Container para a renderização WebGL -->
+      <div id="webgl-output">     
+         <!-- Importa o módulo principal JavaScript da aplicação -->
+         <script type="module" src="main.js"></script>
+      </div>
+
+      <!-- Mira (crosshair) simples no centro da tela -->
+      <div id="crosshair"></div>
+
+      <style>
+        /* Estilo do crosshair (mira) */
+        #crosshair {
+          position: fixed; /* Fixa a posição mesmo com scroll */
+          top: 50%;        /* Centro vertical da tela */
+          left: 50%;       /* Centro horizontal da tela */
+          width: 20px;     /* Largura total da mira */
+          height: 20px;    /* Altura total da mira */
+          margin-left: -10px;  /* Ajuste para centralizar (metade da largura) */
+          margin-top: -10px;   /* Ajuste para centralizar (metade da altura) */
+          pointer-events: none; /* Permite que o cursor clique através da mira */
+          z-index: 1000;       /* Mantém a mira na frente de outros elementos */
+        }
+
+        /* Partes da mira (linha vertical e horizontal) */
+        #crosshair:before, #crosshair:after {
+          content: '';
+          position: absolute;
+          background: white; /* Cor branca para visibilidade */
+        }
+
+        /* Linha vertical da mira */
+        #crosshair:before {
+          left: 50%;
+          top: 0;
+          width: 2px;          /* Espessura da linha */
+          height: 100%;        /* Altura total do crosshair */
+          transform: translateX(-50%); /* Centraliza horizontalmente */
+        }
+
+        /* Linha horizontal da mira */
+        #crosshair:after {
+          top: 50%;
+          left: 0;
+          height: 2px;         /* Espessura da linha */
+          width: 100%;         /* Largura total do crosshair */
+          transform: translateY(-50%); /* Centraliza verticalmente */
+        }
+      </style>
+   </body>
+</html>
