@@ -1,16 +1,7 @@
-// Importa a biblioteca principal Three.js
 import * as THREE from 'three';
-
-// Importa a cena e os objetos que podem colidir (paredes, obstáculos, escadas)
 import { scene, collidableMeshes, stairMeshes } from './sceneSetup.js';
-
-// Importa utilitário para gerenciar o estado do teclado
 import KeyboardState from '../libs/util/KeyboardState.js';
-
-// Importa os controles de movimento baseados em bloqueio de cursor
 import { PointerLockControls } from './PointerLockControls_Trabalho.js';
-
-// Importa funções utilitárias: inicialização do renderizador e ajuste de tamanho da janela
 import {
   initRenderer,
   onWindowResize
@@ -53,22 +44,22 @@ function checkCollision(nextPos, tryStep = true) {
       for (let step = stepIncrement; step <= maxStepHeight; step += stepIncrement) {
         const stepPos = nextPos.clone().add(new THREE.Vector3(0, step, 0));
         const stepBox = new THREE.Box3().setFromCenterAndSize(
-          stepPos.clone().add(new THREE.Vector3(0, playerHeight / 2, 0)),
+          stepPos.clone().add(new THREE.Vector3(0, playerHeight / 2 - 0.15, 0)),
           playerSize
         );
 
         let blocked = false;
-        for (const mesh of collidableMeshes) {
-          const meshBox = new THREE.Box3().setFromObject(mesh);
-          if (stepBox.intersectsBox(meshBox)) {
+        for (const m of collidableMeshes) {
+          const mBox = new THREE.Box3().setFromObject(m);
+          if (stepBox.intersectsBox(mBox)) {
             blocked = true;
             break;
           }
         }
 
         if (!blocked) {
-          nextPos.y += step;
-          return { allowed: true, pos: nextPos };
+          stepPos.y += 0.05; // impulso vertical extra
+          return { allowed: true, pos: stepPos };
         }
       }
       return true;
@@ -87,7 +78,7 @@ function keyboardUpdate() {
   direction.normalize();
 
   const side = new THREE.Vector3();
-  side.crossVectors(camera.up, direction).normalize();
+  side.crossVectors(camera.up, direction).normalize(); // CORREÇÃO AQUI
 
   function tryMove(moveVec) {
     const originalPos = cameraHolder.position.clone();
@@ -102,20 +93,19 @@ function keyboardUpdate() {
       return true;
     }
 
-    const slidePos = originalPos.clone();
+    // Tentativa de deslize parcial
+    const slideX = new THREE.Vector3(moveVec.x, 0, 0).normalize();
+    const slideZ = new THREE.Vector3(0, 0, moveVec.z).normalize();
 
-    slidePos.x = attemptedPos.x;
-    if (checkCollision(slidePos, false)) {
-      slidePos.x = originalPos.x;
+    const trySlideX = originalPos.clone().addScaledVector(slideX, moveSpeed);
+    if (!checkCollision(trySlideX, false)) {
+      cameraHolder.position.copy(trySlideX);
+      return true;
     }
 
-    slidePos.z = attemptedPos.z;
-    if (checkCollision(slidePos, false)) {
-      slidePos.z = originalPos.z;
-    }
-
-    if (!slidePos.equals(originalPos)) {
-      cameraHolder.position.copy(slidePos);
+    const trySlideZ = originalPos.clone().addScaledVector(slideZ, moveSpeed);
+    if (!checkCollision(trySlideZ, false)) {
+      cameraHolder.position.copy(trySlideZ);
       return true;
     }
 
@@ -123,6 +113,7 @@ function keyboardUpdate() {
   }
 
   const pressingForward = keyboard.pressed("W") || keyboard.pressed("up");
+  const pressingBack = keyboard.pressed("S") || keyboard.pressed("down");
   const pressingLeft = keyboard.pressed("A") || keyboard.pressed("left");
   const pressingRight = keyboard.pressed("D") || keyboard.pressed("right");
 
@@ -145,7 +136,7 @@ function keyboardUpdate() {
     tryMove(direction);
   }
 
-  if (keyboard.pressed("S") || keyboard.pressed("down")) {
+  if (pressingBack) {
     tryMove(direction.clone().negate());
   }
 
