@@ -176,6 +176,8 @@ function keyboardUpdate() {
 
   const diagonalLeft = pressingForward && pressingLeft;
   const diagonalRight = pressingForward && pressingRight;
+  const diagonalBackLeft = pressingBack && pressingLeft;
+  const diagonalBackRight = pressingBack && pressingRight;
 
   // Movimentos diagonais com prioridade.
   if (diagonalLeft) {
@@ -189,6 +191,18 @@ function keyboardUpdate() {
     tryMove(diagonalDir);
     return;
   }
+
+  if (diagonalBackLeft) {
+  const diagonalDir = direction.clone().negate().add(side).normalize();
+  tryMove(diagonalDir);
+  return;
+}
+
+if (diagonalBackRight) {
+  const diagonalDir = direction.clone().negate().add(side.clone().negate()).normalize();
+  tryMove(diagonalDir);
+  return;
+}
 
   // Movimentos cardinais.
   if (pressingForward) {
