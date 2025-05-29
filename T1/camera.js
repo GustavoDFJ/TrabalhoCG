@@ -22,42 +22,42 @@ let renderer = initRenderer();
 // Cria a instância do gerenciador de estado do teclado.
 let keyboard = new KeyboardState();
 
-// Cria a câmera perspectiva com campo de visão de 45°, aspecto baseado no tamanho da janela, plano de recorte próximo e distante.
+// Cria a câmera perspectiva com FOV de 45°, aspecto da janela, e limites de renderização próximos/distantes.
 let camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 // Define a posição inicial da câmera no espaço 3D.
 camera.position.set(0, 2.0, 0);
 
-// Define o vetor "para cima" da câmera, indicando qual direção é considerada como "cima".
+// Define o vetor "para cima" da câmera, padrão (eixo Y positivo).
 camera.up.set(0.0, 1.0, 0.0);
 
-// Faz a câmera olhar para um ponto específico no espaço (acima de sua posição atual).
+// Faz a câmera olhar para um ponto específico (em frente, na mesma altura).
 camera.lookAt(new THREE.Vector3(0.0, 2.0, 0.0));
 
-// Cria um objeto vazio para agrupar a câmera, facilitando movimentações.
+// Cria um objeto vazio para agrupar a câmera, útil para movimentações.
 let cameraHolder = new THREE.Object3D();
 
 // Adiciona a câmera como filho do "cameraHolder".
 cameraHolder.add(camera);
 
-// Adiciona o "cameraHolder" à cena para que ele seja renderizado e possa interagir com o ambiente.
+// Adiciona o "cameraHolder" à cena.
 scene.add(cameraHolder);
 
-// Cria os controles de movimentação baseados em PointerLock, permitindo navegação com mouse.
+// Cria os controles baseados em PointerLock, permitindo navegação com mouse.
 const controls = new PointerLockControls(camera, renderer.domElement);
 
-// Adiciona um evento que ativa o bloqueio do mouse quando o usuário clica no canvas.
+// Adiciona evento para ativar o PointerLock ao clicar no canvas.
 renderer.domElement.addEventListener('click', () => controls.lock(), false);
 
-// Adiciona evento para ajustar o tamanho da renderização caso a janela seja redimensionada.
+// Ajusta a renderização ao redimensionar a janela.
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 
-// Função para verificar colisão entre o jogador e objetos colidíveis.
+// Função para verificar colisão entre jogador e objetos colidíveis.
 function checkCollision(nextPos, tryStep = true) {
   const playerHeight = 2.0; // Altura do jogador.
   const playerSize = new THREE.Vector3(1.0, playerHeight, 1.0); // Dimensões da "caixa" do jogador.
 
-  // Cria uma caixa delimitadora (AABB) ao redor da posição proposta do jogador.
+  // Cria caixa delimitadora ao redor da posição proposta.
   const originalBox = new THREE.Box3().setFromCenterAndSize(
     nextPos.clone().add(new THREE.Vector3(0, playerHeight / 2, 0)),
     playerSize
@@ -65,21 +65,21 @@ function checkCollision(nextPos, tryStep = true) {
 
   // Itera sobre todos os objetos colidíveis.
   for (const mesh of collidableMeshes) {
-    // Cria a caixa delimitadora do objeto atual.
+    // Cria a caixa delimitadora do objeto.
     const meshBox = new THREE.Box3().setFromObject(mesh);
 
-    // Verifica se há interseção entre a caixa do jogador e a do objeto.
+    // Verifica interseção com o objeto.
     if (originalBox.intersectsBox(meshBox)) {
-      // Verifica se o objeto colidido é uma escada.
+      // Verifica se o objeto é uma escada.
       const isStair = stairMeshes.includes(mesh);
 
-      // Se não for uma escada ou não for permitido tentar subir, retorna colisão.
+      // Se não for escada ou não pode tentar subir, retorna colisão.
       if (!isStair || !tryStep) return true;
 
-      const maxStepHeight = 1; // Altura máxima que pode ser "escalada".
+      const maxStepHeight = 1; // Altura máxima que pode subir.
       const stepIncrement = 0.1; // Incremento para tentativa de subida.
 
-      // Tenta subir pequenos degraus até a altura máxima permitida.
+      // Tenta subir pequenos degraus até o máximo.
       for (let step = stepIncrement; step <= maxStepHeight; step += stepIncrement) {
         const stepPos = nextPos.clone().add(new THREE.Vector3(0, step, 0));
 
@@ -91,43 +91,43 @@ function checkCollision(nextPos, tryStep = true) {
 
         let blocked = false;
 
-        // Verifica se ao subir o degrau há nova colisão.
+        // Verifica se há colisão ao subir o degrau.
         for (const m of collidableMeshes) {
           const mBox = new THREE.Box3().setFromObject(m);
           if (stepBox.intersectsBox(mBox)) {
-            blocked = true; // Colisão detectada, não pode subir.
+            blocked = true; // Não pode subir.
             break;
           }
         }
 
-        // Se não houve colisão ao subir, permite o movimento com pequeno impulso.
+        // Se não houve colisão ao subir, permite movimento.
         if (!blocked) {
-          stepPos.y += 0.05; // Impulso vertical extra.
+          stepPos.y += 0.05; // Pequeno impulso vertical extra.
           return { allowed: true, pos: stepPos };
         }
       }
 
-      // Caso não consiga subir degrau, retorna colisão.
+      // Não conseguiu subir degrau, retorna colisão.
       return true;
     }
   }
 
-  // Se não colidiu com nada, retorno falso (movimento permitido).
+  // Se não colidiu com nada, permite movimento.
   return false;
 }
 
-// Função que atualiza a movimentação baseada nas teclas pressionadas.
+// Função que atualiza movimentação conforme teclas pressionadas.
 function keyboardUpdate() {
-  keyboard.update(); // Atualiza o estado do teclado.
-  const moveSpeed = 0.7; // Velocidade de movimentação.
+  keyboard.update(); // Atualiza estado do teclado.
+  const moveSpeed = 0.7; // Velocidade de movimento.
 
   const direction = new THREE.Vector3();
-  camera.getWorldDirection(direction); // Obtém direção atual da câmera.
-  direction.y = 0; // Ignora componente vertical.
+  camera.getWorldDirection(direction); // Direção atual da câmera.
+  direction.y = 0; // Ignora vertical.
   direction.normalize(); // Normaliza vetor.
 
   const side = new THREE.Vector3();
-  side.crossVectors(camera.up, direction).normalize(); // Obtém vetor lateral (perpendicular).
+  side.crossVectors(camera.up, direction).normalize(); // Vetor lateral (perpendicular).
 
   // Função auxiliar para tentar mover o jogador.
   function tryMove(moveVec) {
@@ -147,7 +147,7 @@ function keyboardUpdate() {
       return true;
     }
 
-    // Caso haja colisão, tenta deslizar parcialmente em X.
+    // Caso colisão, tenta deslizar em X.
     const slideX = new THREE.Vector3(moveVec.x, 0, 0).normalize();
     const slideZ = new THREE.Vector3(0, 0, moveVec.z).normalize();
 
@@ -157,76 +157,94 @@ function keyboardUpdate() {
       return true;
     }
 
-    // Caso deslize X bloqueado, tenta deslizar em Z.
+    // Caso deslize X bloqueado, tenta em Z.
     const trySlideZ = originalPos.clone().addScaledVector(slideZ, moveSpeed);
     if (!checkCollision(trySlideZ, false)) {
       cameraHolder.position.copy(trySlideZ);
       return true;
     }
 
-    // Não conseguiu se mover.
+    // Não conseguiu mover.
     return false;
   }
 
-  // Checa teclas pressionadas.
-  const pressingForward = keyboard.pressed("W") || keyboard.pressed("up");
-  const pressingBack = keyboard.pressed("S") || keyboard.pressed("down");
-  const pressingLeft = keyboard.pressed("A") || keyboard.pressed("left");
-  const pressingRight = keyboard.pressed("D") || keyboard.pressed("right");
+// Checa quais teclas de movimentação estão pressionadas.
+// Considera tanto as teclas de letras (WASD) quanto as setas direcionais.
+const pressingForward = keyboard.pressed("W") || keyboard.pressed("up");    // Avançar.
+const pressingBack = keyboard.pressed("S") || keyboard.pressed("down");     // Recuar.
+const pressingLeft = keyboard.pressed("A") || keyboard.pressed("left");     // Mover para a esquerda.
+const pressingRight = keyboard.pressed("D") || keyboard.pressed("right");   // Mover para a direita.
 
-  const diagonalLeft = pressingForward && pressingLeft;
-  const diagonalRight = pressingForward && pressingRight;
-  const diagonalBackLeft = pressingBack && pressingLeft;
-  const diagonalBackRight = pressingBack && pressingRight;
+// Determina se o jogador está pressionando combinações de teclas para movimentação diagonal.
+// A movimentação diagonal ocorre quando duas teclas ortogonais são pressionadas simultaneamente.
+const diagonalLeft = pressingForward && pressingLeft;          // Frente + Esquerda.
+const diagonalRight = pressingForward && pressingRight;       // Frente + Direita.
+const diagonalBackLeft = pressingBack && pressingLeft;        // Trás + Esquerda.
+const diagonalBackRight = pressingBack && pressingRight;      // Trás + Direita.
 
-  // Movimentos diagonais com prioridade.
-  if (diagonalLeft) {
-    const diagonalDir = direction.clone().add(side).normalize();
-    tryMove(diagonalDir);
-    return;
-  }
+// Movimentos diagonais têm prioridade sobre movimentos simples.
+// Isso evita múltiplos movimentos sequenciais no mesmo frame e garante suavidade na direção.
 
-  if (diagonalRight) {
-    const diagonalDir = direction.clone().add(side.clone().negate()).normalize();
-    tryMove(diagonalDir);
-    return;
-  }
+// Movimento: Frente + Esquerda
+if (diagonalLeft) {
+  // Cria um vetor resultante somando a direção da frente com a lateral esquerda.
+  const diagonalDir = direction.clone().add(side).normalize();
+  tryMove(diagonalDir);  // Tenta mover o jogador na direção diagonal.
+  return;  // Sai da função para evitar múltiplos movimentos no mesmo frame.
+}
 
-  if (diagonalBackLeft) {
+// Movimento: Frente + Direita
+if (diagonalRight) {
+  // Soma a frente com o inverso da lateral (direita).
+  const diagonalDir = direction.clone().add(side.clone().negate()).normalize();
+  tryMove(diagonalDir);
+  return;
+}
+
+// Movimento: Trás + Esquerda
+if (diagonalBackLeft) {
+  // Soma a direção oposta à frente com a lateral esquerda.
   const diagonalDir = direction.clone().negate().add(side).normalize();
   tryMove(diagonalDir);
   return;
 }
 
+// Movimento: Trás + Direita
 if (diagonalBackRight) {
+  // Soma a direção oposta à frente com a lateral direita (negativa de side).
   const diagonalDir = direction.clone().negate().add(side.clone().negate()).normalize();
   tryMove(diagonalDir);
   return;
 }
 
-  // Movimentos cardinais.
-  if (pressingForward) {
-    tryMove(direction);
-  }
+// Se não houver combinações diagonais, verifica e executa movimentos cardinais (individuais).
 
-  if (pressingBack) {
-    tryMove(direction.clone().negate());
-  }
+// Movimento: Apenas para frente.
+if (pressingForward) {
+  tryMove(direction);
+}
 
-  if (pressingLeft && !pressingForward) {
-    tryMove(side);
-  }
+// Movimento: Apenas para trás.
+if (pressingBack) {
+  tryMove(direction.clone().negate());
+}
 
-  if (pressingRight && !pressingForward) {
-    tryMove(side.clone().negate());
-  }
+// Movimento: Apenas para a esquerda, desde que não esteja indo para frente.
+if (pressingLeft && !pressingForward) {
+  tryMove(side);
+}
+
+// Movimento: Apenas para a direita, desde que não esteja indo para frente.
+if (pressingRight && !pressingForward) {
+  tryMove(side.clone().negate());
+}
 }
 
 // Função que aplica gravidade ao jogador.
 function applyGravity() {
-  const groundCheckHeight = 0.1; // Distância para checar o chão.
-  const gravityStep = 0.15; // Quanto o jogador cai por frame.
-  const playerHeight = 2.0; 
+  const groundCheckHeight = 0.1; // Distância para checar chão.
+  const gravityStep = 0.15; // Valor da queda por frame.
+  const playerHeight = 2.0;
   const minY = 0.8; // Altura mínima para impedir queda infinita.
 
   // Posição logo abaixo do jogador.
@@ -254,17 +272,17 @@ function applyGravity() {
   if (!grounded) {
     cameraHolder.position.y -= gravityStep;
     if (cameraHolder.position.y < minY) {
-      cameraHolder.position.y = minY; // Impede de cair abaixo do mínimo.
+      cameraHolder.position.y = minY; // Impede queda abaixo do mínimo.
     }
   }
 }
 
 // Função principal de renderização.
 function render() {
-  requestAnimationFrame(render); // Loop de animação.
+  requestAnimationFrame(render); // Mantém o loop de animação.
   keyboardUpdate(); // Atualiza movimentação.
   applyGravity(); // Aplica gravidade.
-  renderer.render(scene, camera); // Renderiza a cena com a câmera.
+  renderer.render(scene, camera); // Renderiza a cena.
 }
 
 // Exporta variáveis e funções para uso em outros arquivos.

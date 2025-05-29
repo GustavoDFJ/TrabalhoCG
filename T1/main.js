@@ -21,10 +21,12 @@ initWeaponSystem(camera, renderer);
 
 // Cria uma caixa de informações para instruções ao usuário
 const info = new InfoBox();
-info.add("Movimentar → W/A/S/D");  // Instrução para trocar arma
-info.add("Troca de Arma → SCROLL");  // Instrução para trocar arma
-info.add("Disparar Arma → botão ESQUERDO/DIREITO do Mouse");  // Instrução de disparo de esferas
-info.show();  // Exibe a caixa de informações na tela
+info.add("Liberar Movimento da Camera → de um clique na tela"); 
+info.add("Liberar Mouse → apertar esc"); 
+info.add("Movimentar → W/A/S/D");  
+info.add("Troca de Arma → SCROLL");  
+info.add("Disparar Arma → botão ESQUERDO/DIREITO do Mouse"); 
+info.show();  
 
 // Função de loop do jogo, chamada a cada frame
 function gameLoop() {
