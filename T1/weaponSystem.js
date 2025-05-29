@@ -1,179 +1,209 @@
-import * as THREE from 'three';
-import { scene, collidableMeshes } from './sceneSetup.js';
+import * as THREE from 'three'; // Importa toda a biblioteca THREE.js para manipulação 3D
+import { scene, collidableMeshes } from './sceneSetup.js'; // Importa a cena principal e os objetos que podem colidir
 
-// Variável que guarda qual arma está ativa: 0 = cilindro, 1 = paralelepípedo
-let currentWeapon = 0; 
+// Índice da arma atualmente selecionada (0 ou 1)
+let currentWeapon = 0;
 
-// Referências globais para câmera e renderer (serão setadas na inicialização)
+// Referência para a câmera e o renderizador, que serão configurados na inicialização
 let cameraRef = null;
 let rendererRef = null;
 
-// Array que guarda os projéteis disparados
+// Array para armazenar os projéteis ativos na cena
 const projectiles = [];
 
-// Distância máxima que o projétil pode percorrer antes de ser removido
+// Distância máxima que um projétil pode percorrer antes de ser removido
 const maxDistance = 500;
 
-// Tempo mínimo (ms) entre disparos consecutivos para cada arma (cadência de tiro)
+// Tempo entre disparos (em milissegundos)
 const fireRate = 500; // 0.5 segundos
 
-// Array que armazena o último tempo que cada arma atirou (índice 0 = cilindro, 1 = caixa)
+// Array para armazenar o timestamp do último disparo de cada arma (índice 0 e 1)
 let lastShotTime = [0, 0];
 
-// Array para armazenar os modelos das armas (cilindro e paralelepípedo)
+// Array que armazenará os modelos das armas
 let weaponModels = [];
 
-// Cria os modelos 3D das armas
+// Flag para indicar se está disparando continuamente
+let firing = false;
+
+// Intervalo para disparos automáticos
+let fireInterval = null;
+
+// Função que cria os modelos 3D das armas e adiciona ao array weaponModels
 function createWeaponModels() {
-  // Cilindro deitado (rotacionado para ficar "deitado" no eixo X)
+  // Cria um cilindro verde (arma 0)
   const cylGeometry = new THREE.CylinderGeometry(0.2, 0.2, 3, 32);
   const cylMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
   const cylinder = new THREE.Mesh(cylGeometry, cylMaterial);
-  cylinder.position.set(0, -0.5, -1);       // posiciona em frente e um pouco para baixo da câmera
-  cylinder.rotation.x = Math.PI / 2;        // rotaciona 90° para deitar o cilindro
-  weaponModels.push(cylinder);               // adiciona ao array de modelos
+  cylinder.position.set(0, -0.5, -1); // Posiciona a arma em relação à câmera
+  cylinder.rotation.x = Math.PI / 2; // Rotaciona para ficar apontando para frente
+  weaponModels.push(cylinder);
 
-  // Paralelepípedo deitado (sem rotação no seu código, pode ajustar se quiser)
+  // Cria uma caixa amarela (arma 1)
   const boxGeometry = new THREE.BoxGeometry(0.5, 0.1, 5);
   const boxMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
   const box = new THREE.Mesh(boxGeometry, boxMaterial);
-  box.position.set(0, -0.5, -1);            // mesma posição que o cilindro
-  // (Se quiser que o paralelepípedo também fique deitado, pode adicionar uma rotação aqui)
-  weaponModels.push(box);                    // adiciona ao array de modelos
+  box.position.set(0, -0.5, -1); // Posiciona em relação à câmera
+  weaponModels.push(box);
 }
 
-// Atualiza a visibilidade dos modelos de armas para mostrar só o ativo
+// Atualiza a visibilidade dos modelos das armas, mostrando só o selecionado
 function updateWeaponModel() {
   weaponModels.forEach((model, index) => {
     model.visible = index === currentWeapon; // só o modelo da arma atual fica visível
   });
 }
 
-// Função para trocar de arma com o scroll do mouse
+// Função para trocar de arma usando o scroll do mouse
 function switchWeapon(event) {
   if (event.deltaY < 0) {
-    // Scroll para cima → próxima arma (mod 2 para voltar ao início)
+    // Scroll para cima: avança para a próxima arma
     currentWeapon = (currentWeapon + 1) % 2;
   } else {
-    // Scroll para baixo → arma anterior
+    // Scroll para baixo: volta para a arma anterior
     currentWeapon = (currentWeapon - 1 + 2) % 2;
   }
-  updateWeaponModel(); // atualiza a visibilidade dos modelos
+  updateWeaponModel(); // Atualiza a visibilidade das armas
 }
 
-// Função para disparar arma quando botão do mouse é pressionado
-function fireWeapon(event) {
-  const now = Date.now();
+// Função para iniciar o disparo contínuo ao clicar
+function startFiring(event) {
+  if (firing) return; // Se já estiver disparando, não faz nada
+  firing = true;
+  handleFire(event); // Dispara imediatamente
+  fireInterval = setInterval(() => handleFire(event), fireRate); // Dispara a cada fireRate ms
+}
 
-  // Se arma atual é o cilindro e botão esquerdo (0) for clicado
+// Função para parar o disparo contínuo
+function stopFiring() {
+  firing = false;
+  clearInterval(fireInterval); // Limpa o intervalo de disparo
+}
+
+// Função que controla quando deve disparar baseado no tempo e botão pressionado
+function handleFire(event) {
+  const now = Date.now(); // Tempo atual
+
+  // Para arma 0, aceita clique botão esquerdo (0) ou direito (2)
   if (currentWeapon === 0 && (event.button === 0 || event.button === 2)) {
-    // Verifica se já passou o tempo de recarga para disparar de novo
     if (now - lastShotTime[0] >= fireRate) {
-      lastShotTime[0] = now;           // atualiza último tempo de tiro
-      spawnProjectile('sphere');       // cria projétil esfera (para cilindro)
+      lastShotTime[0] = now; // Atualiza tempo do último disparo
+      spawnProjectile('sphere'); // Cria projétil esférico
     }
   }
 
-  // Se arma atual é o paralelepípedo e botão direito (2) for clicado
+  // Para arma 1, aceita clique botão direito (2) ou esquerdo (0)
   if (currentWeapon === 1 && (event.button === 2 || event.button === 0)) {
     if (now - lastShotTime[1] >= fireRate) {
-      lastShotTime[1] = now;
-      spawnProjectile('cube');         // cria projétil cubo (para paralelepípedo)
+      lastShotTime[1] = now; // Atualiza tempo do último disparo
+      spawnProjectile('cube'); // Cria projétil cúbico
     }
   }
 }
 
-// Cria um projétil do tipo especificado (sphere ou cube)
+// Função que cria o projétil na cena
 function spawnProjectile(type) {
   let geometry, material;
 
+  // Define geometria e material baseado no tipo do projétil
   if (type === 'sphere') {
     geometry = new THREE.SphereGeometry(0.2, 16, 16);
-    material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    material = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Vermelho
   } else {
     geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-    material = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+    material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Azul
   }
 
   const projectile = new THREE.Mesh(geometry, material);
 
-  // Pega a posição global da câmera
-  const cameraWorldPosition = new THREE.Vector3();
-  cameraRef.getWorldPosition(cameraWorldPosition);
+  // Obtém a posição global da ponta da arma para spawnar o projétil ali
+  const weaponTip = new THREE.Vector3();
+  weaponModels[currentWeapon].getWorldPosition(weaponTip);
 
-  // Pega a direção que a câmera está olhando (vetor normalizado)
+  // Obtém a direção da câmera, para onde o projétil vai
   const direction = new THREE.Vector3();
   cameraRef.getWorldDirection(direction);
   direction.normalize();
 
-  // Posiciona o projétil na posição da câmera
-  // projectile.position.copy(cameraRef.position);
+  // Calcula o deslocamento para o projétil sair da ponta da arma
+  let offset = 2; // valor padrão
 
-  // Posiciona o projétil na posição global da câmera
-  projectile.position.copy(cameraWorldPosition);
+  const weaponGeometry = weaponModels[currentWeapon].geometry;
 
-  // Adiciona o projétil à cena
-  scene.add(projectile);
+  if (weaponGeometry.type === 'CylinderGeometry') {
+    offset = weaponGeometry.parameters.height / 2; // metade do comprimento do cilindro
+  } else if (weaponGeometry.type === 'BoxGeometry') {
+    offset = weaponGeometry.parameters.depth / 2; // metade da profundidade da caixa
+  }
 
-  // Adiciona o projétil ao array, guardando mesh, direção e posição inicial
+  // Calcula a posição final do projétil deslocado na direção da arma
+  const spawnPosition = weaponTip.clone().add(direction.clone().multiplyScalar(offset));
+
+  // Posiciona o projétil na cena
+  projectile.position.copy(spawnPosition);
+
+  scene.add(projectile); // Adiciona projétil à cena
+
+  // Armazena informações do projétil para controle de movimento e colisão
   projectiles.push({
     mesh: projectile,
     direction: direction.clone(),
-    // startPosition: cameraRef.position.clone()
-    startPosition: cameraWorldPosition.clone()
+    startPosition: spawnPosition.clone()
   });
 }
 
-// Atualiza a posição dos projéteis na cena e verifica colisões/distância máxima
+// Atualiza a posição dos projéteis na cena e verifica colisões e distância máxima
 function updateProjectiles() {
-  const speed = 1; // velocidade que os projéteis se movem
+  const speed = 5;  // Velocidade dos projéteis
 
-  // Percorre o array de trás para frente para permitir remoção segura
+  // Itera ao contrário para poder remover projéteis da lista durante o loop
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
 
-    // Move o projétil na direção do disparo multiplicada pela velocidade
+    // Move o projétil na direção definida multiplicada pela velocidade
     p.mesh.position.addScaledVector(p.direction, speed);
 
-    // Cria caixa delimitadora para o projétil
+    // Cria uma caixa delimitadora para o projétil
     const box = new THREE.Box3().setFromObject(p.mesh);
     let collided = false;
 
-    // Checa colisão com cada mesh que pode colidir
+    // Verifica colisão com cada mesh que pode colidir
     for (const mesh of collidableMeshes) {
       const meshBox = new THREE.Box3().setFromObject(mesh);
       if (box.intersectsBox(meshBox)) {
-        collided = true;
+        collided = true; // Colisão detectada
         break;
       }
     }
 
-    // Calcula a distância percorrida desde o ponto inicial do projétil
+    // Calcula a distância percorrida pelo projétil desde o spawn
     const distance = p.mesh.position.distanceTo(p.startPosition);
 
-    // Remove projétil se colidiu ou ultrapassou distância máxima
+    // Remove o projétil se colidiu ou ultrapassou a distância máxima
     if (collided || distance > maxDistance) {
-      scene.remove(p.mesh);
-      projectiles.splice(i, 1);
+      scene.remove(p.mesh); // Remove da cena
+      projectiles.splice(i, 1); // Remove do array
     }
   }
 }
 
-// Inicializa o sistema de armas, recebendo câmera e renderer como parâmetros
+// Função que inicializa o sistema de armas, recebe referências para câmera e renderer
 function initWeaponSystem(camera, renderer) {
   cameraRef = camera;
   rendererRef = renderer;
 
-  createWeaponModels();                  // cria os modelos das armas
-  weaponModels.forEach(model => cameraRef.add(model)); // adiciona armas como filhos da câmera
-  updateWeaponModel();                   // mostra apenas arma ativa
+  createWeaponModels(); // Cria os modelos das armas
+  weaponModels.forEach(model => cameraRef.add(model)); // Anexa as armas à câmera para que sigam o movimento dela
+  updateWeaponModel(); // Atualiza para mostrar a arma atual
 
-  window.addEventListener('wheel', switchWeapon); // escuta o scroll para trocar arma
+  // Evento para trocar de arma com o scroll do mouse
+  window.addEventListener('wheel', switchWeapon);
 
-  // Usa o elemento DOM do renderer para ouvir eventos de clique e disparar armas
-  //rendererRef.domElement.removeEventListener('mousedown', fireWeapon); // Remove primeiro
-  rendererRef.domElement.addEventListener('mousedown', fireWeapon);
+  // Eventos para começar e parar de atirar com os cliques do mouse
+  rendererRef.domElement.addEventListener('pointerdown', startFiring);
+  rendererRef.domElement.addEventListener('pointerup', stopFiring);
+  rendererRef.domElement.addEventListener('pointerleave', stopFiring);
 }
 
-// Exporta as funções para uso externo (inicializar armas e atualizar projéteis)
+// Exporta as funções para serem usadas externamente
 export { initWeaponSystem, updateProjectiles };
