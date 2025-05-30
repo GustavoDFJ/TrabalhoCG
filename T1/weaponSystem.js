@@ -20,14 +20,14 @@ const fireRate = 500; // 0.5 segundos
 // Array para armazenar o timestamp do último disparo de cada arma (índice 0 e 1)
 let lastShotTime = [0, 0];
 
+// Controla se a arma pode atirar
+let canShoot = [true, true];
+
 // Array que armazenará os modelos das armas
 let weaponModels = [];
 
 // Flag para indicar se está disparando continuamente
 let firing = false;
-
-// Intervalo para disparos automáticos
-let fireInterval = null;
 
 // Função que cria os modelos 3D das armas e adiciona ao array weaponModels
 function createWeaponModels() {
@@ -71,33 +71,43 @@ function startFiring(event) {
   if (firing) return; // Se já estiver disparando, não faz nada
   firing = true;
   handleFire(event); // Dispara imediatamente
-  fireInterval = setInterval(() => handleFire(event), fireRate); // Dispara a cada fireRate ms
+  animateFiring(event);
+}
+
+function animateFiring(event) {
+  if (!firing) return;
+  handleFire(event);
+  requestAnimationFrame(() => animateFiring(event));
 }
 
 // Função para parar o disparo contínuo
 function stopFiring() {
   firing = false;
-  clearInterval(fireInterval); // Limpa o intervalo de disparo
 }
 
 // Função que controla quando deve disparar baseado no tempo e botão pressionado
 function handleFire(event) {
-  const now = Date.now(); // Tempo atual
+  const now = performance.now();
+  const weaponIndex = currentWeapon;
 
-  // Para arma 0, aceita clique botão esquerdo (0) ou direito (2)
-  if (currentWeapon === 0 && (event.button === 0 || event.button === 2)) {
-    if (now - lastShotTime[0] >= fireRate) {
-      lastShotTime[0] = now; // Atualiza tempo do último disparo
-      spawnProjectile('sphere'); // Cria projétil esférico
-    }
+  if (!canShoot[weaponIndex]) return;
+
+  // Verifica botões corretos para cada arma
+  if ((weaponIndex === 0 && event.button !== 0 && event.button !== 2) ||
+      (weaponIndex === 1 && event.button !== 2 && event.button !== 0)) {
+    return;
   }
 
-  // Para arma 1, aceita clique botão direito (2) ou esquerdo (0)
-  if (currentWeapon === 1 && (event.button === 2 || event.button === 0)) {
-    if (now - lastShotTime[1] >= fireRate) {
-      lastShotTime[1] = now; // Atualiza tempo do último disparo
-      spawnProjectile('cube'); // Cria projétil cúbico
-    }
+  if (now - lastShotTime[weaponIndex] >= fireRate) {
+    canShoot[weaponIndex] = false;
+    lastShotTime[weaponIndex] = now;
+    
+    spawnProjectile(weaponIndex === 0 ? 'sphere' : 'cube');
+    
+    // Habilita novo disparo após o fireRate
+    setTimeout(() => {
+      canShoot[weaponIndex] = true;
+    }, fireRate);
   }
 }
 
